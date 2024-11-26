@@ -59,7 +59,9 @@ class Chunk
     {
         ErrorsChunk(Errors::CAN_NOT_REDEFINE_LENGHT_BLOCK, _isCalcLength);
          _isCalcLength = true;
-        return convertStringInInt<DEFAULT_SIZE_BLOCK, decltype(_length)>(length);
+        const int16_t u = convertStringInInt<DEFAULT_SIZE_BLOCK, int16_t>(length);
+        ErrorsChunk(Errors::THE_LENGTH_MUST_NOT_BE_LESS_THAN_ZERO, u < 0);
+        return static_cast<decltype(_length)>(u);
     }
     constexpr uint32_t calcCrc(const char* const& crc)
     {
