@@ -16,6 +16,21 @@ namespace chunks {
 
 static constexpr uint8_t DEFAULT_SIZE_BLOCK = 4;
 
+struct TestCheckStringItInt
+{
+    template<typename T>
+    constexpr bool operator()(const T& str) const
+    {
+        auto num = 0;
+        for (auto i : str)
+            if (isdigit(i))
+                ++num;
+        return num == str.size();
+    }
+};
+
+inline constexpr TestCheckStringItInt funcTestCheckString{};
+
 enum class ModeChunk : uint8_t
 {
     NONE = 0, // default mode
@@ -57,22 +72,25 @@ protected:
     const char* _data;
 
     template<typename T> requires(std::integral<T>)
-    static constexpr T&& test_func(const std::string& number_in_form_of_string)
+    static constexpr T test_func(const std::string& number_in_form_of_string)
     {
+        ErrorsChunk(Errors::CAN_NOT_CONVERTING_STRING_IN_INTEGER,
+            !funcTestCheckString(number_in_form_of_string));
+
         using type = std::remove_cvref_t<T>;
         if constexpr (std::is_signed_v<type>)
         {
             if constexpr (sizeof(type) <= 4)
-                return std::move(static_cast<type>(std::stoi(number_in_form_of_string)));
+                return static_cast<type>(std::stoi(number_in_form_of_string));
             else
-                return std::move(static_cast<type>(std::stoll(number_in_form_of_string)));
+                return static_cast<type>(std::stoll(number_in_form_of_string));
         }
         else
         {
             if constexpr (sizeof(type) <= 4)
-                return std::move(static_cast<type>(std::stoul(number_in_form_of_string)));
+                return static_cast<type>(std::stoul(number_in_form_of_string));
             else
-                return std::move(static_cast<type>(std::stoull(number_in_form_of_string)));
+                return static_cast<type>(std::stoull(number_in_form_of_string));
         }
     }
 
@@ -83,13 +101,7 @@ protected:
         for (auto i = string; i != string + size; ++i)
             if (static_cast<T>(*i))
                 ss << static_cast<T>(static_cast<uint8_t>(*i));
-
-        if constexpr (sizeof(T) > DEFAULT_SIZE_BLOCK)
-            return static_cast<T>(std::stoll(ss.str()));
-
-        int32_t num = std::stoi(ss.str());
-        ErrorsChunk(Errors::THE_LENGTH_MUST_NOT_BE_LESS_THAN_ZERO, num < 0);
-        return static_cast<T>(num);
+        return test_func<T>(ss.str());
     }
 
     [[nodiscard]] static constexpr const char* subString(const uint32_t begin,

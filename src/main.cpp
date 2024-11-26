@@ -35,43 +35,6 @@ struct func_defined_type
 template<auto number> requires(std::is_integral_v<decltype(number)>)
 inline constexpr auto func_defined_type_t = func_defined_type<number>();
 
-struct TestCheckStringItInt
-{
-    template<typename T>
-    constexpr bool operator()(const T& str) const
-    {
-        auto num = 0;
-        for (auto i : str)
-            if (isdigit(i))
-                ++num;
-        return num == str.size();
-    }
-};
-
-inline constexpr TestCheckStringItInt funcTestCheckString{};
-
-
-template<typename T> requires(std::integral<T>)
-static constexpr T test_func(const std::string& number_in_form_of_string)
-{
-    if (!funcTestCheckString(number_in_form_of_string))
-        throw std::runtime_error("String isn`t number!!!");
-
-    if constexpr (std::is_signed_v<T>)
-    {
-        if constexpr (sizeof(T) <= 4)
-            return static_cast<T>(std::stoi(number_in_form_of_string));
-        else
-            return static_cast<T>(std::stoll(number_in_form_of_string));
-    }
-    else
-    {
-        if constexpr (sizeof(T) <= 4)
-            return static_cast<T>(std::stoul(number_in_form_of_string));
-        else
-            return static_cast<T>(std::stoull(number_in_form_of_string));
-    }
-}
 
 int main()
 {
@@ -89,31 +52,15 @@ int main()
     name[26] = '\0';
     file.close();
 
-    // const Chunk chunk(8, 33, name, ModeChunk::READ);
-    //
-    // std::cout << "LEN -> " << chunk.length() << '\n'
-    //             << "Name -> " << chunk.name() << '\n'
-    //             << "Crc -> " << chunk.crc() << '\n'
-    //             << "Size -> " << chunk.size() << '\n'
-    //             << "Mode -> " << chunk.toStringMode() << '\n';
+    const Chunk chunk(8, 33, name, ModeChunk::READ);
+
+    std::cout << "LEN -> " << chunk.length() << '\n'
+                << "Name -> " << chunk.name() << '\n'
+                << "Crc -> " << chunk.crc() << '\n'
+                << "Size -> " << chunk.size() << '\n'
+                << "Mode -> " << chunk.toStringMode() << '\n';
 
     delete[] name;
-
-    // std::cout << "HJ -> " << test_func<uint32_t>("0009") << '\n';
-    // std::cout << "H -> " << test_func<int32_t>("h9") << '\n';
-    // std::cout << "HJF -> " << test_func<uint64_t>("89") << '\n';
-
-
-    // std::cout << "hj -> " << func_defined_type_t<int, 90> << '\n';
-
-    std::string ui = "45";
-
-
-    std::cout << test_func<uint32_t>(ui) << '\n';
-
-    // std::cout << funcTestCheckString(ui);
-
-    // std::cout << funcTestCheckString(std::string("8f9")) << '\n';
 
     // const PngFormatRead pfr(nameFileForRead);
 
