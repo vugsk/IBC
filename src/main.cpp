@@ -8,9 +8,6 @@
 
 using namespace chunks;
 
-
-
-
 template<auto number> requires(std::is_integral_v<decltype(number)>)
 struct func_defined_type
 {
@@ -47,7 +44,6 @@ struct TestCheckStringItInt
         for (auto i : str)
             if (isdigit(i))
                 ++num;
-
         return num == str.size();
     }
 };
@@ -58,6 +54,9 @@ inline constexpr TestCheckStringItInt funcTestCheckString{};
 template<typename T> requires(std::integral<T>)
 static constexpr T test_func(const std::string& number_in_form_of_string)
 {
+    if (!funcTestCheckString(number_in_form_of_string))
+        throw std::runtime_error("String isn`t number!!!");
+
     if constexpr (std::is_signed_v<T>)
     {
         if constexpr (sizeof(T) <= 4)
@@ -110,7 +109,7 @@ int main()
     std::string ui = "45";
 
 
-    std::cout << funcTestCheckString(ui) << '\n';
+    std::cout << test_func<uint32_t>(ui) << '\n';
 
     // std::cout << funcTestCheckString(ui);
 

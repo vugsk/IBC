@@ -56,16 +56,6 @@ class Chunk
 protected:
     const char* _data;
 
-    // T -> uint32_t (aka unsigned int) || uint16_t (aka unsigned short)
-    // T -> if (T == unsigned || T == signed) -> bool isSigned = ??? -> remove unsigned || signed
-    // T -> (if ( T == const || T == volatile || ...)) -> ??? || (remove const || volatile || ...)
-    // T -> if (T == int || T == short || T == char || T == long long) ->
-    //      -> if (isSigned):
-    //          true && signed (int || long long || ...) -> stoi || stoll ->
-    //              -> error number > max -> int || long long
-    //          false && unsigned (int || long long || ...) -> stui || stoull -> error:
-    //                  1. error -> number < 0
-    //                  2. error -> number > max
     template<typename T> requires(std::integral<T>)
     static constexpr T&& test_func(const std::string& number_in_form_of_string)
     {
