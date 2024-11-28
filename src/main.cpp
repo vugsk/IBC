@@ -1,40 +1,10 @@
 
-#include <iostream>
 #include <fstream>
-#include <ranges>
-#include <utility>
+#include <iostream>
 
 #include "PngFormatLib/Chunk.hpp"
 
 using namespace chunks;
-
-template<auto number> requires(std::is_integral_v<decltype(number)>)
-struct func_defined_type
-{
-    constexpr auto operator()() const noexcept
-    {
-        if constexpr (number < INT8_MAX && number > INT8_MIN)
-            return static_cast<int8_t>(number);
-        else if constexpr (number < UINT8_MAX && number > 0)
-            return static_cast<uint8_t>(number);
-        else if constexpr (number < INT16_MAX && number > INT16_MIN)
-            return static_cast<int16_t>(number);
-        else if constexpr (number < UINT16_MAX && number > 0)
-            return static_cast<uint16_t>(number);
-        else if constexpr (number < INT32_MAX && number > INT32_MIN)
-            return static_cast<int32_t>(number);
-        else if constexpr (number < UINT32_MAX && number > 0)
-            return static_cast<uint32_t>(number);
-        else if constexpr (number < INT64_MAX && number > INT64_MIN)
-            return static_cast<int64_t>(number);
-        else if constexpr (number < UINT64_MAX && number > 0)
-            return static_cast<uint64_t>(number);
-    };
-};
-
-template<auto number> requires(std::is_integral_v<decltype(number)>)
-inline constexpr auto func_defined_type_t = func_defined_type<number>();
-
 
 int main()
 {
@@ -58,9 +28,11 @@ int main()
                 << "Name -> " << chunk.name() << '\n'
                 << "Crc -> " << chunk.crc() << '\n'
                 << "Size -> " << chunk.size() << '\n'
-                << "Mode -> " << chunk.toStringMode() << '\n';
+                << "Mode -> " << chunk.testMode() << '\n';
 
     delete[] name;
+
+
 
     // const PngFormatRead pfr(nameFileForRead);
 
