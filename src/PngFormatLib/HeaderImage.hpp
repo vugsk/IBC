@@ -39,7 +39,7 @@ public:
         , _heightImage(0), _depth(0), _colorType(0), _compression(0), _filter(0)
         , _interface(0), _isInit(false)
     {
-
+        _isCanMultiChucks = true;
     }
     constexpr ~HeaderImage() override = default;
 

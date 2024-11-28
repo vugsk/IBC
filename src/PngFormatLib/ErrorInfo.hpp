@@ -39,7 +39,7 @@ enum class ErrorsChunks : uint8_t
 
 // can be using modification constexpr
 template<typename ENUMCLASS>
-class ErrorInfo final : public std::exception
+class ErrorInfo // final : public std::exception
 {
     ENUMCLASS _error;
     const char* _text{};
@@ -48,7 +48,7 @@ public:
     constexpr          ErrorInfo() noexcept = default;
     constexpr explicit ErrorInfo(const ENUMCLASS& err, const char* const&& text)
         : _error(err), _text(std::forward<const char* const>(text)) {}
-    constexpr ~ErrorInfo() override = default;
+    constexpr ~ErrorInfo() = default; // override
     constexpr ErrorInfo(const ErrorInfo& other) = default;
     constexpr ErrorInfo(ErrorInfo&& other) noexcept
         : _error(other._error), _text(other._text)
@@ -57,10 +57,10 @@ public:
         other._text  = nullptr;
     }
 
-    [[nodiscard]] constexpr const char* what() const noexcept override
-    {
-        return _text;
-    }
+    // [[nodiscard]] constexpr const char* what() const noexcept override
+    // {
+    //     return _text;
+    // }
 
     constexpr ErrorInfo& operator=(const ErrorInfo& other)
     {
@@ -97,7 +97,7 @@ public:
 };
 
 static constexpr uint8_t SIZE_ARRAY_ERRORS_CHUNKS = 10;
-static inline const ErrorInfo<ErrorsChunks> ERRORS[SIZE_ARRAY_ERRORS_CHUNKS]
+static constexpr ErrorInfo<ErrorsChunks> ERRORS[SIZE_ARRAY_ERRORS_CHUNKS] // inline const
 {
     // Errors -> redefine blocks
     ErrorInfo(ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK,
@@ -133,33 +133,6 @@ namespace critical_chunks
 // static constexpr std::array
 
 }
-
-template<auto number> requires(std::is_integral_v<decltype(number)>)
-struct func_defined_type
-{
-    constexpr auto operator()() const noexcept
-    {
-        if constexpr (number < INT8_MAX && number > INT8_MIN)
-            return static_cast<int8_t>(number);
-        else if constexpr (number < UINT8_MAX && number > 0)
-            return static_cast<uint8_t>(number);
-        else if constexpr (number < INT16_MAX && number > INT16_MIN)
-            return static_cast<int16_t>(number);
-        else if constexpr (number < UINT16_MAX && number > 0)
-            return static_cast<uint16_t>(number);
-        else if constexpr (number < INT32_MAX && number > INT32_MIN)
-            return static_cast<int32_t>(number);
-        else if constexpr (number < UINT32_MAX && number > 0)
-            return static_cast<uint32_t>(number);
-        else if constexpr (number < INT64_MAX && number > INT64_MIN)
-            return static_cast<int64_t>(number);
-        else if constexpr (number < UINT64_MAX && number > 0)
-            return static_cast<uint64_t>(number);
-    };
-};
-
-template<auto number> requires(std::is_integral_v<decltype(number)>)
-inline constexpr auto func_defined_type_t = func_defined_type<number>();
 
 
 enum class TypesErrorsChunks : uint8_t
@@ -198,7 +171,7 @@ public:
         const Typ<ENUMCLASS>& t = define_type_error<ENUMCLASS>(type);
         for (auto i = t.arr; i != t.arr + t.size_arr; ++i)
             if (i->error() == error && value)
-                throw *i; // rewrite
+                throw std::runtime_error(i->text()); // rewrite
     }
 };
 

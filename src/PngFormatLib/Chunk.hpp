@@ -11,11 +11,12 @@
 #include <sstream>
 
 #include "ErrorInfo.hpp"
+#include "GeneralFunction.hpp"
+
 
 namespace chunks {
 
 static constexpr uint8_t DEFAULT_SIZE_BLOCK = 4;
-
 
 
 class func_check_string_in_int_
@@ -32,7 +33,7 @@ public:
     }
 };
 
-inline constexpr func_check_string_in_int_ checkStringInInt{};
+static inline constexpr func_check_string_in_int_ checkStringInInt{};
 
 
 
@@ -64,9 +65,17 @@ class Chunk
     {
         errorsChunk(ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK,
                     std::forward<bool>(_isCalcLength));
-         _isCalcLength = true;
-        const int16_t u = convertStringInInt<DEFAULT_SIZE_BLOCK, int16_t>(length);
+
+        _isCalcLength = true;
+
+        using inversionTypeLength =
+            decltype(general_function::testInversion<decltype(_length)>());
+
+        const inversionTypeLength u = convertStringInInt<DEFAULT_SIZE_BLOCK,
+            inversionTypeLength>(length);
+
         errorsChunk(ErrorsChunks::THE_LENGTH_MUST_NOT_BE_LESS_THAN_ZERO, u < 0);
+
         return static_cast<decltype(_length)>(u);
     }
     constexpr uint32_t calcCrc(const char* const& crc)
@@ -120,10 +129,12 @@ protected:
     {
         errorsChunk(ErrorsChunks::CAN_NOT_WAS_CRASH_STRING_ON_SUBSTRING,
             begin > end || begin == end);
+
         const auto sub = new char[end - begin + 1];
         for (uint32_t i = begin; i < end; i++)
             sub[i - begin] = data[i];
         sub[end - begin] = '\0';
+
         return sub;
     }
 
