@@ -1,3 +1,5 @@
 .idea
 cmake-build-debug
 bytePatterns.yml
+.vale.ini
+cmake-build-release

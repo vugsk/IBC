@@ -26,10 +26,14 @@ public:
     constexpr bool operator()(const T& str) const
     {
         auto num = 0;
-        for (auto i : str)
+        for (const auto& i : str)
+        {
             if (isdigit(i))
+            {
                 ++num;
-        return num == str.size();
+            }
+        }
+        return static_cast<size_t>(num) == str.size();
     }
 };
 
@@ -39,7 +43,7 @@ static inline constexpr func_check_string_in_int_ checkStringInInt{};
 
 enum class ModeChunk : uint8_t
 {
-    NONE = 0, // default mode
+    NONE, // default mode
     READ,
     WRITE,
     MIXED, // maybe I will
@@ -55,13 +59,12 @@ class Chunk
     uint16_t _length;
 
     ModeChunk _mode;
-    TypesErrorsChunks _typeError;
 
     bool _isCalcLength;
     bool _isCalcTypeChunk;
     bool _isCalcCrc;
 
-    constexpr uint32_t calcLength(const char* const& length)
+    constexpr uint32_t covertFromArrayInLength(const char* const& length)
     {
         errorsChunk(ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK,
                     std::forward<bool>(_isCalcLength));
@@ -78,7 +81,7 @@ class Chunk
 
         return static_cast<decltype(_length)>(u);
     }
-    constexpr uint32_t calcCrc(const char* const& crc)
+    constexpr uint32_t convertFromFromArrayInCrc(const char* const& crc)
     {
         errorsChunk(ErrorsChunks::CAN_NOT_REDEFINE_CRC_BLOCK,
             std::forward<bool>(_isCalcCrc));
@@ -86,12 +89,24 @@ class Chunk
         return convertStringInInt<DEFAULT_SIZE_BLOCK, decltype(_crc)>(crc);
     }
 
+    // doing
+    static constexpr uint32_t calcCrc()
+    {
+        return 0;
+    }
+
+    static constexpr void errorsChunk(ErrorsChunks&& errors_chunks, bool&& val)
+    {
+        checkChunkUnderErrors(std::forward<ErrorsChunks>(errors_chunks),
+            std::forward<bool>(val), TypesErrorsChunks::CHUNK);
+    }
+
 protected:
     const char* _data;
     bool _isCanMultiChucks;
 
     template<typename T> requires(std::integral<T>)
-    [[nodiscard]] constexpr T test_func(
+    [[nodiscard]] constexpr T defineConversionInNumber(
         const std::string& number_in_form_of_string) const
     {
         errorsChunk(ErrorsChunks::CAN_NOT_CONVERTING_STRING_IN_INTEGER,
@@ -101,16 +116,24 @@ protected:
         if constexpr (std::is_signed_v<type>)
         {
             if constexpr (sizeof(type) <= 4)
+            {
                 return static_cast<type>(std::stoi(number_in_form_of_string));
+            }
             else
+            {
                 return static_cast<type>(std::stoll(number_in_form_of_string));
+            }
         }
         else
         {
             if constexpr (sizeof(type) <= 4)
+            {
                 return static_cast<type>(std::stoul(number_in_form_of_string));
+            }
             else
+            {
                 return static_cast<type>(std::stoull(number_in_form_of_string));
+            }
         }
     }
 
@@ -121,11 +144,12 @@ protected:
         for (auto i = string; i != string + size; ++i)
             if (static_cast<T>(*i))
                 ss << static_cast<T>(static_cast<uint8_t>(*i));
-        return test_func<T>(ss.str());
+        return defineConversionInNumber<T>(ss.str());
     }
 
-    [[nodiscard]] constexpr const char* subString(const uint32_t begin,
-        const uint32_t end, const char* const& data) const
+    // fix
+    [[nodiscard]] static constexpr const char* subString(const uint32_t begin,
+        const uint32_t end, const char* const& data)
     {
         errorsChunk(ErrorsChunks::CAN_NOT_WAS_CRASH_STRING_ON_SUBSTRING,
             begin > end || begin == end);
@@ -135,32 +159,25 @@ protected:
             sub[i - begin] = data[i];
         sub[end - begin] = '\0';
 
-        return sub;
-    }
-
-    constexpr void errorsChunk(ErrorsChunks&& errors_chunks, bool&& val) const
-    {
-        checkChunkUnderErrors(std::forward<ErrorsChunks>(errors_chunks),
-            std::forward<bool>(val), _typeError);
+        return "dd";
     }
 
 public:
     constexpr explicit Chunk(const uint32_t begin, const uint32_t end,
-                             const char* data, const ModeChunk& mode,
-                             const TypesErrorsChunks& type_error = TypesErrorsChunks::CHUNK)
+                             const char* const& data, const ModeChunk& mode)
         : _name{}, _begin(begin), _end(end)
         , _size(end - begin), _crc(0), _length(0), _mode(mode)
-        , _typeError(type_error), _isCalcLength(false)
+        , _isCalcLength(false)
         , _isCalcTypeChunk(false), _isCalcCrc(false), _data(nullptr)
         , _isCanMultiChucks(false)
     {
         errorsChunk(ErrorsChunks::CAN_NOT_WAS_CHUNK_SHORT_THAN_12_BYTES,
             _size < DEFAULT_SIZE_BLOCK * 2);
-        _length = calcLength(subString(0, DEFAULT_SIZE_BLOCK, data));
+        _length = covertFromArrayInLength(subString(0, DEFAULT_SIZE_BLOCK, data));
         strcpy(_name, subString(DEFAULT_SIZE_BLOCK,
             DEFAULT_SIZE_BLOCK * 2, data));
-        _data = subString(DEFAULT_SIZE_BLOCK * 2, _length + 1, data);
-        _crc = calcCrc(subString(_size - DEFAULT_SIZE_BLOCK, _size, data));
+        // _data = subString(DEFAULT_SIZE_BLOCK * 2, _length + 1, data);
+        // _crc = convertFromFromArrayInCrc(subString(_size - DEFAULT_SIZE_BLOCK, _size, data));
     }
     constexpr Chunk(const Chunk& other)
          : _name{}
@@ -170,12 +187,11 @@ public:
          , _crc(other._crc)
          , _length(other._length)
          , _mode(other._mode)
-         , _isCanMultiChucks(other._isCanMultiChucks)
          , _isCalcLength(other._isCalcLength)
          , _isCalcTypeChunk(other._isCalcTypeChunk)
          , _isCalcCrc(other._isCalcCrc)
          , _data(other._data)
-         , _typeError(other._typeError)
+         , _isCanMultiChucks(other._isCanMultiChucks)
     {
         strcpy(_name, other._name);
     }
@@ -187,12 +203,11 @@ public:
          , _crc(other._crc)
          , _length(other._length)
          , _mode(other._mode)
-         , _isCanMultiChucks(other._isCanMultiChucks)
          , _isCalcLength(other._isCalcLength)
          , _isCalcTypeChunk(other._isCalcTypeChunk)
          , _isCalcCrc(other._isCalcCrc)
          , _data(other._data)
-         , _typeError(other._typeError)
+         , _isCanMultiChucks(other._isCanMultiChucks)
     {
         strcpy(_name, other._name);
         strcpy(other._name, "");
@@ -208,7 +223,6 @@ public:
         other._isCalcTypeChunk = false;
         other._isCalcCrc = false;
         other._data = nullptr;
-        other._typeError = TypesErrorsChunks::NONE;
     }
     constexpr virtual ~Chunk() = default;
 
@@ -228,7 +242,6 @@ public:
          _isCalcTypeChunk  = other._isCalcTypeChunk;
          _isCalcCrc        = other._isCalcCrc;
          _data             = other._data;
-        _typeError         = other._typeError;
 
         strcpy(_name, other._name);
 
@@ -251,7 +264,6 @@ public:
         _isCalcTypeChunk  = other._isCalcTypeChunk;
         _isCalcCrc        = other._isCalcCrc;
         _data             = other._data;
-        _typeError         = other._typeError;
 
         strcpy(other._name, "");
         other._begin = 0;
@@ -265,7 +277,6 @@ public:
         other._isCalcTypeChunk = false;
         other._isCalcCrc = false;
         other._data = nullptr;
-        other._typeError = TypesErrorsChunks::NONE;
         return *this;
     }
 

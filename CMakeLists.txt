@@ -12,4 +12,5 @@ add_executable(BinirisationImgCpp src/main.cpp
     src/PngFormatLib/ErrorInfo.hpp
     src/PngFormatLib/HeaderImage.cpp
     src/PngFormatLib/HeaderImage.hpp
-    src/PngFormatLib/GeneralFunction.hpp)
+    src/PngFormatLib/GeneralFunction.hpp
+)

@@ -15,6 +15,13 @@ namespace chunks
 namespace critical_chunks
 {
 
+enum class ErrorChunkHeaderImage : uint8_t
+{
+    NONE = 0,
+
+    IT_SHOULD_NOT_BE_INITIALIZED_AGAIN,
+
+};
 
 }
 
@@ -38,17 +45,18 @@ enum class ErrorsChunks : uint8_t
 };
 
 // can be using modification constexpr
-template<typename ENUMCLASS>
-class ErrorInfo // final : public std::exception
+template<typename Enumclass>
+class ErrorInfo
 {
-    ENUMCLASS _error;
+    Enumclass _error;
     const char* _text{};
 
 public:
     constexpr          ErrorInfo() noexcept = default;
-    constexpr explicit ErrorInfo(const ENUMCLASS& err, const char* const&& text)
-        : _error(err), _text(std::forward<const char* const>(text)) {}
-    constexpr ~ErrorInfo() = default; // override
+    constexpr explicit ErrorInfo(Enumclass&& err, const char* const&& text)
+        : _error(std::forward<Enumclass>(err))
+        , _text(std::forward<const char* const>(text)) {}
+    constexpr ~ErrorInfo() = default;
     constexpr ErrorInfo(const ErrorInfo& other) = default;
     constexpr ErrorInfo(ErrorInfo&& other) noexcept
         : _error(other._error), _text(other._text)
@@ -56,11 +64,6 @@ public:
         other._error = ErrorsChunks::NONE;
         other._text  = nullptr;
     }
-
-    // [[nodiscard]] constexpr const char* what() const noexcept override
-    // {
-    //     return _text;
-    // }
 
     constexpr ErrorInfo& operator=(const ErrorInfo& other)
     {
@@ -97,7 +100,7 @@ public:
 };
 
 static constexpr uint8_t SIZE_ARRAY_ERRORS_CHUNKS = 10;
-static constexpr ErrorInfo<ErrorsChunks> ERRORS[SIZE_ARRAY_ERRORS_CHUNKS] // inline const
+static constexpr ErrorInfo<ErrorsChunks> GENERAL_ERRORS_CHUNK[SIZE_ARRAY_ERRORS_CHUNKS]
 {
     // Errors -> redefine blocks
     ErrorInfo(ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK,
@@ -113,24 +116,30 @@ static constexpr ErrorInfo<ErrorsChunks> ERRORS[SIZE_ARRAY_ERRORS_CHUNKS] // inl
     ErrorInfo(ErrorsChunks::CAN_NOT_USING_FUNCTIONS_WRITES,
               "Can`t using functions writes!!!"),
     ErrorInfo(ErrorsChunks::CAN_NOT_USING_FUNCTIONS_READS_OR_WRITES,
-              "Can`t using functions reads or writes!!!"),
+              "Can't use functions to read or write!!!"),
 
     // Error -> internal function class Chunk
     ErrorInfo(ErrorsChunks::CAN_NOT_CONVERTING_STRING_IN_INTEGER,
-              "Can`t converting string in integer!!!"),
+              "Can't convert string to integer!!!"),
     ErrorInfo(ErrorsChunks::CAN_NOT_WAS_CHUNK_SHORT_THAN_12_BYTES,
-              "Can`t was chunk short than 12 bytes!!!"),
+              "Can't be chunk shorter than 12 bytes!!!"),
     ErrorInfo(ErrorsChunks::CAN_NOT_WAS_CRASH_STRING_ON_SUBSTRING,
-              "Can`t was crash string on substring!!!"),
+              "Can't crash string on substring!!!"),
     ErrorInfo(ErrorsChunks::THE_LENGTH_MUST_NOT_BE_LESS_THAN_ZERO,
-              "The length must not be less than zero!!!"),
+              "The length mustn't be less than zero!!!"),
 };
 
 
 namespace critical_chunks
 {
 
-// static constexpr std::array
+static constexpr uint8_t SIZE_ARRAY_ERRORS_CHUNKS = 1;
+static constexpr ErrorInfo<ErrorChunkHeaderImage>
+    ERRORS_HEADER_IMAGE[SIZE_ARRAY_ERRORS_CHUNKS]
+{
+    ErrorInfo(ErrorChunkHeaderImage::IT_SHOULD_NOT_BE_INITIALIZED_AGAIN,
+              "It should not be initialized again"),
+};
 
 }
 
@@ -142,40 +151,45 @@ enum class TypesErrorsChunks : uint8_t
     HEADER_IMAGE_CHUNK,
 };
 
-class func_check_errors_
+class FuncCheckErrors
 {
-    template<typename ENUMCLASS>
+    template<typename Enumclass>
     struct Typ
     {
-        const ErrorInfo<ENUMCLASS>* const& arr;
+        const ErrorInfo<Enumclass>* const& arr;
         const uint8_t size_arr;
     };
 
-    template<typename ENUMCLASS>
-    static constexpr Typ<ENUMCLASS> define_type_error(const TypesErrorsChunks& type)
+    template<typename Enumclass>
+    static constexpr Typ<Enumclass> defineTypeError(const TypesErrorsChunks& type)
     {
         using enum TypesErrorsChunks;
         switch (type)
         {
-            case CHUNK: return Typ<ENUMCLASS>{ERRORS, SIZE_ARRAY_ERRORS_CHUNKS};
+            case CHUNK: return Typ<Enumclass>{GENERAL_ERRORS_CHUNK, SIZE_ARRAY_ERRORS_CHUNKS};
             case HEADER_IMAGE_CHUNK:
-                default: return Typ<ENUMCLASS>{new ErrorInfo<ENUMCLASS>[1], 1};
+                default: return Typ<Enumclass>{new ErrorInfo<Enumclass>[1], 1};
         }
     };
 
 public:
-    template<typename ENUMCLASS> requires(std::is_enum_v<ENUMCLASS>)
-    constexpr void operator()(const ENUMCLASS& error, const bool value,
+    template<typename Enumclass> requires(std::is_enum_v<Enumclass>)
+    constexpr void operator()(const Enumclass& error, const bool value,
         const TypesErrorsChunks& type) const
     {
-        const Typ<ENUMCLASS>& t = define_type_error<ENUMCLASS>(type);
+        const Typ<Enumclass>& t = defineTypeError<Enumclass>(type);
         for (auto i = t.arr; i != t.arr + t.size_arr; ++i)
+        {
             if (i->error() == error && value)
+            {
                 throw std::runtime_error(i->text()); // rewrite
+            }
+        }
     }
 };
 
-static inline constexpr func_check_errors_ checkChunkUnderErrors{};
+
+inline constexpr FuncCheckErrors checkChunkUnderErrors{};
 
 } // chunks
 

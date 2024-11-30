@@ -12,13 +12,6 @@
 namespace chunks::critical_chunks
 {
 
-enum class ErrorChunkHeaderImage : uint8_t
-{
-    NONE = 0,
-
-
-};
-
 class HeaderImage final : public Chunk
 {
     uint16_t _widthImage;
@@ -30,19 +23,44 @@ class HeaderImage final : public Chunk
     uint8_t _interface;
 
     bool _isInit;
-    
 public:
     constexpr explicit HeaderImage(const uint32_t begin, const uint32_t end,
-                          const char* const& data, const ModeChunk mode,
-                          const TypesErrorsChunks& type_error)
-        : Chunk(begin, end, data, mode, type_error), _widthImage(0)
-        , _heightImage(0), _depth(0), _colorType(0), _compression(0), _filter(0)
-        , _interface(0), _isInit(false)
-    {
-        _isCanMultiChucks = true;
-    }
+                          const char* const& data, const ModeChunk mode)
+        : Chunk(begin, end, data, mode), _widthImage()
+        , _heightImage(), _depth(), _colorType(), _compression(), _filter()
+        , _interface(), _isInit(true) {}
     constexpr ~HeaderImage() override = default;
 
+
+
+    [[nodiscard]] uint16_t widthImage() const
+    {
+        return _widthImage;
+    }
+    [[nodiscard]] uint16_t heightImage() const
+    {
+        return _heightImage;
+    }
+    [[nodiscard]] uint8_t depth() const
+    {
+        return _depth;
+    }
+    [[nodiscard]] uint8_t colorType() const
+    {
+        return _colorType;
+    }
+    [[nodiscard]] uint8_t compression() const
+    {
+        return _compression;
+    }
+    [[nodiscard]] uint8_t filter() const
+    {
+        return _filter;
+    }
+    [[nodiscard]] uint8_t interface() const
+    {
+        return _interface;
+    }
 };
 
 
