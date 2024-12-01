@@ -3,3 +3,5 @@
 //
 
 #include "HeaderImage.hpp"
+
+uint8_t chunks::critical_chunks::HeaderImage::_count = 0;

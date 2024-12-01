@@ -3,9 +3,7 @@ project(BinirisationImgCpp)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(BinirisationImgCpp src/main.cpp
-    # PngFormatRead.cpp
-    # PngFormatRead.hpp
+add_executable(BinirasionImgCpp src/main.cpp
     src/PngFormatLib/PngFormat.cpp
     src/PngFormatLib/PngFormat.hpp
     src/PngFormatLib/Chunk.hpp

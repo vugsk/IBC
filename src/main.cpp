@@ -1,6 +1,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #include "PngFormatLib/Chunk.hpp"
 #include "PngFormatLib/HeaderImage.hpp"
@@ -14,19 +15,21 @@ int main()
     {
         file.seekg(8);
 
-        char name[27];
+        const auto name = new char[27];
         file.read(name, 26);
         name[26] = '\0';
-        file.close();
 
-        const chunks::Chunk
+        const chunks::critical_chunks::HeaderImage
                 chunk_header_img(8, 33, name, chunks::ModeChunk::READ);
 
         std::cout << "LEN -> " << chunk_header_img.length() << '\n'
                     << "Name -> " << chunk_header_img.name() << '\n'
                     << "Crc -> " << chunk_header_img.crc() << '\n'
                     << "Size -> " << chunk_header_img.size() << '\n'
-                    << "Mode -> " << chunk_header_img.testMode() << '\n';
+                    << "Mode -> " << chunk_header_img.mode() << '\n';
+
+        file.close();
+
         return 0;
     }
     return -1;

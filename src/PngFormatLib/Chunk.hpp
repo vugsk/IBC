@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 #include <sstream>
 
 #include "ErrorInfo.hpp"
@@ -22,17 +23,16 @@ static constexpr uint8_t DEFAULT_SIZE_BLOCK = 4;
 class func_check_string_in_int_
 {
 public:
+    constexpr func_check_string_in_int_() = default;
+    constexpr ~func_check_string_in_int_() = default;
+
     template<typename T>
     constexpr bool operator()(const T& str) const
     {
         auto num = 0;
         for (const auto& i : str)
-        {
             if (isdigit(i))
-            {
                 ++num;
-            }
-        }
         return static_cast<size_t>(num) == str.size();
     }
 };
@@ -51,11 +51,14 @@ enum class ModeChunk : uint8_t
 
 class Chunk
 {
+    static constexpr uint64_t val1 = 0xEDB88320UL; // rename
+    static constexpr uint64_t max_uint64 = 0xFFFFFFFFUL; // rename
+
     char _name[DEFAULT_SIZE_BLOCK];
     uint32_t _begin;
     uint32_t _end;
     uint32_t _size;
-    uint32_t _crc; // algorithm CRC-32
+    uint32_t _crc;
     uint16_t _length;
 
     ModeChunk _mode;
@@ -64,102 +67,118 @@ class Chunk
     bool _isCalcTypeChunk;
     bool _isCalcCrc;
 
-    constexpr uint32_t covertFromArrayInLength(const char* const& length)
+    template<typename T>
+    constexpr T covertFromArrayInLength(const char* const& length,
+        const bool val = false)
     {
-        errorsChunk(ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK,
-                    std::forward<bool>(_isCalcLength));
-
-        _isCalcLength = true;
+        errorsChunk<ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK>(
+                    std::forward<bool>(static_cast<bool>(val)));
 
         using inversionTypeLength =
-            decltype(general_function::testInversion<decltype(_length)>());
+            decltype(general_function::testInversion<T>());
 
         const inversionTypeLength u = convertStringInInt<DEFAULT_SIZE_BLOCK,
             inversionTypeLength>(length);
 
-        errorsChunk(ErrorsChunks::THE_LENGTH_MUST_NOT_BE_LESS_THAN_ZERO, u < 0);
+        errorsChunk<ErrorsChunks::THE_LENGTH_MUST_NOT_BE_LESS_THAN_ZERO>(u < 0);
 
-        return static_cast<decltype(_length)>(u);
+        return static_cast<T>(u);
     }
-    constexpr uint32_t convertFromFromArrayInCrc(const char* const& crc)
+
+    constexpr auto convertFromFromArrayInCrc(const char* const& crc) -> decltype(_crc)
     {
-        errorsChunk(ErrorsChunks::CAN_NOT_REDEFINE_CRC_BLOCK,
+        errorsChunk<ErrorsChunks::CAN_NOT_REDEFINE_CRC_BLOCK>(
             std::forward<bool>(_isCalcCrc));
         _isCalcCrc = true;
-        return convertStringInInt<DEFAULT_SIZE_BLOCK, decltype(_crc)>(crc);
+        return convertStringInInt<DEFAULT_SIZE_BLOCK, decltype(_crc), 16>(crc);
     }
 
-    // doing
-    static constexpr uint32_t calcCrc()
+    static constexpr uint32_t calcCrc(const char*&& buf, uint64_t&& len)
     {
-        return 0;
+        uint64_t crc_table[256];
+        uint64_t crc;
+        for (uint16_t i = 0; i < 256; i++)
+        {
+            crc = i;
+            for (uint8_t j = 0; j < 8; j++)
+                crc = (crc >> 1) ^ (crc & 1 ? val1 : 0);
+            crc_table[i] = crc;
+        };
+
+        crc = max_uint64;
+        while (len--)
+            crc = (crc >> 8) ^ crc_table[(crc ^ *buf++) & 0xFF];
+        return crc ^ max_uint64;
     }
 
-    static constexpr void errorsChunk(ErrorsChunks&& errors_chunks, bool&& val)
+    template<ErrorsChunks error>
+    static constexpr void errorsChunk(bool&& val)
     {
-        checkChunkUnderErrors(std::forward<ErrorsChunks>(errors_chunks),
-            std::forward<bool>(val), TypesErrorsChunks::CHUNK);
+        checkError<ErrorsChunks, error, 1>(std::forward<bool>(val));
     }
 
 protected:
     const char* _data;
     bool _isCanMultiChucks;
 
-    template<typename T> requires(std::integral<T>)
-    [[nodiscard]] constexpr T defineConversionInNumber(
-        const std::string& number_in_form_of_string) const
+    template<typename T, uint8_t base = 10> requires(std::integral<T>)
+    [[nodiscard]] static constexpr T defineConversionInNumber(
+        const std::string& number_in_form_of_string)
     {
-        errorsChunk(ErrorsChunks::CAN_NOT_CONVERTING_STRING_IN_INTEGER,
-            !checkStringInInt(number_in_form_of_string));
+        if constexpr (base != 16)
+            errorsChunk<ErrorsChunks::CAN_NOT_CONVERTING_STRING_IN_INTEGER>(
+                !checkStringInInt(number_in_form_of_string));
 
         using type = std::remove_cvref_t<T>;
         if constexpr (std::is_signed_v<type>)
         {
             if constexpr (sizeof(type) <= 4)
             {
-                return static_cast<type>(std::stoi(number_in_form_of_string));
+                return static_cast<type>(std::stoi(number_in_form_of_string, nullptr, base));
             }
             else
             {
-                return static_cast<type>(std::stoll(number_in_form_of_string));
+                return static_cast<type>(std::stoll(number_in_form_of_string, nullptr, base));
             }
         }
         else
         {
             if constexpr (sizeof(type) <= 4)
             {
-                return static_cast<type>(std::stoul(number_in_form_of_string));
+                return static_cast<type>(std::stoul(number_in_form_of_string, nullptr, base));
             }
             else
             {
-                return static_cast<type>(std::stoull(number_in_form_of_string));
+                return static_cast<type>(std::stoull(number_in_form_of_string, nullptr, base));
             }
         }
     }
 
-    template<uint8_t size, typename T> requires(std::integral<T>)
+    template<uint8_t size, typename T, uint8_t base = 10> requires(std::integral<T>)
     [[nodiscard]] constexpr T convertStringInInt(const char* const& string)
     {
+        const auto* str = reinterpret_cast<const uint8_t*>(string);
         std::stringstream ss;
-        for (auto i = string; i != string + size; ++i)
-            if (static_cast<T>(*i))
-                ss << static_cast<T>(static_cast<uint8_t>(*i));
-        return defineConversionInNumber<T>(ss.str());
+        for (auto i = str; i != str + size; ++i)
+        {
+            if (static_cast<T>(*i) && base == 16)
+                ss << std::hex << static_cast<T>(*i);
+            else
+                ss << static_cast<T>(*i);
+        }
+        return defineConversionInNumber<T, base>(ss.str());
     }
 
-    // fix
     [[nodiscard]] static constexpr const char* subString(const uint32_t begin,
         const uint32_t end, const char* const& data)
     {
-        errorsChunk(ErrorsChunks::CAN_NOT_WAS_CRASH_STRING_ON_SUBSTRING,
+        errorsChunk<ErrorsChunks::CAN_NOT_WAS_CRASH_STRING_ON_SUBSTRING>(
             begin > end || begin == end);
-
         const auto sub = new char[end - begin + 1];
         for (uint32_t i = begin; i < end; i++)
             sub[i - begin] = data[i];
         sub[end - begin] = '\0';
-
-        return "dd";
+        return sub;
     }
 
 public:
@@ -171,13 +190,18 @@ public:
         , _isCalcTypeChunk(false), _isCalcCrc(false), _data(nullptr)
         , _isCanMultiChucks(false)
     {
-        errorsChunk(ErrorsChunks::CAN_NOT_WAS_CHUNK_SHORT_THAN_12_BYTES,
+        errorsChunk<ErrorsChunks::CAN_NOT_WAS_CHUNK_SHORT_THAN_12_BYTES>(
             _size < DEFAULT_SIZE_BLOCK * 2);
-        _length = covertFromArrayInLength(subString(0, DEFAULT_SIZE_BLOCK, data));
+        _length = covertFromArrayInLength<decltype(_length)>(
+            subString(0, DEFAULT_SIZE_BLOCK, data), _isCalcLength);
+        _isCalcLength = true;
         strcpy(_name, subString(DEFAULT_SIZE_BLOCK,
             DEFAULT_SIZE_BLOCK * 2, data));
-        // _data = subString(DEFAULT_SIZE_BLOCK * 2, _length + 1, data);
-        // _crc = convertFromFromArrayInCrc(subString(_size - DEFAULT_SIZE_BLOCK, _size, data));
+        _data = subString(DEFAULT_SIZE_BLOCK * 2, _length + 1, data);
+        _crc = convertFromFromArrayInCrc(subString(_size - DEFAULT_SIZE_BLOCK, _size, data));
+
+        errorsChunk<ErrorsChunks::CHUNK_DAMAGED>(
+            _crc == calcCrc(subString(4, 17, data), 17));
     }
     constexpr Chunk(const Chunk& other)
          : _name{}
@@ -306,7 +330,7 @@ public:
     }
 
     template<bool isToStringMode = true>
-    [[nodiscard]] constexpr auto testMode() const
+    [[nodiscard]] constexpr auto mode() const
     {
         if constexpr (isToStringMode)
         {

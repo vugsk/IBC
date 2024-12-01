@@ -97,6 +97,15 @@ struct func_defined_type
 template<auto number> requires(std::is_integral_v<decltype(number)>)
 inline constexpr auto func_defined_type_t = func_defined_type<number>();
 
+template<auto start, auto end, auto step = 1, typename Function>
+static constexpr void for_constexpr(Function&& func)
+{
+    if constexpr (step > 0 && start < end)
+    {
+        func(start);
+        for_constexpr<start + step, end>(std::forward<Function>(func));
+    }
+}
 
 }
 
