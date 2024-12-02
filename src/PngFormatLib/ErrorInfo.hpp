@@ -36,11 +36,12 @@ enum class ErrorsChunks : uint8_t
     CAN_NOT_REDEFINE_LENGTH_BLOCK,  // implemented in class Chunk
     CAN_NOT_REDEFINE_CRC_BLOCK,     // implemented in class Chunk
     CAN_NOT_REDEFINE_DATA_BLOCK,
-    CHUNK_DAMAGED,
+    CHUNK_DAMAGED,                  // implemented in class Chunk
 
-    CAN_NOT_USING_FUNCTIONS_WRITES,
-    CAN_NOT_USING_FUNCTIONS_READS,
-    CAN_NOT_USING_FUNCTIONS_READS_OR_WRITES,
+    CAN_NOT_USING_FUNCTIONS_NONE,               // implemented in class Chunk
+    CAN_NOT_USING_FUNCTIONS_WRITES,             // implemented in class Chunk
+    CAN_NOT_USING_FUNCTIONS_READS,              // implemented in class Chunk
+    CAN_NOT_USING_FUNCTIONS_READS_OR_WRITES,    // implemented in class Chunk
 
     CAN_NOT_CONVERTING_STRING_IN_INTEGER,   // implemented in class Chunk
     CAN_NOT_WAS_CRASH_STRING_ON_SUBSTRING,  // implemented in class Chunk
@@ -116,6 +117,8 @@ static constexpr std::array GENERAL_ERRORS_CHUNK
               "Chunk to damaged!!!"),
 
     // Error -> mode chunk
+    ErrorInfo(ErrorsChunks::CAN_NOT_USING_FUNCTIONS_NONE,
+              "Can`t using functions none!!!"),
     ErrorInfo(ErrorsChunks::CAN_NOT_USING_FUNCTIONS_READS,
               "Can`t using functions reads!!!"),
     ErrorInfo(ErrorsChunks::CAN_NOT_USING_FUNCTIONS_WRITES,
@@ -162,7 +165,7 @@ class check_errors_fn
         HEADER_IMAGE_CHUNK,
     };
 
-    static constexpr TypesErrorsChunks defineEnumTypesErrors(const uint8_t type)
+    static consteval TypesErrorsChunks defineEnumTypesErrors(const uint8_t type)
     {
         switch (type)
         {
@@ -173,7 +176,7 @@ class check_errors_fn
     }
 
     template<TypesErrorsChunks type>
-    static constexpr auto defineArrayWithErrors()
+    static consteval auto defineArrayWithErrors()
     {
         if constexpr (type == TypesErrorsChunks::CHUNK)
             return GENERAL_ERRORS_CHUNK;
@@ -185,7 +188,6 @@ class check_errors_fn
 
     static constexpr auto array_e = defineArrayWithErrors<defineEnumTypesErrors(n)>();
 
-    // loop -> for
     template<auto start = 0, auto end = array_e.size(), auto step = 1>
     static constexpr void iterationArrayWithError()
     {

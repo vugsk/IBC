@@ -67,24 +67,6 @@ class Chunk
     bool _isCalcTypeChunk;
     bool _isCalcCrc;
 
-    template<typename T>
-    constexpr T covertFromArrayInLength(const char* const& length,
-        const bool val = false)
-    {
-        errorsChunk<ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK>(
-                    std::forward<bool>(static_cast<bool>(val)));
-
-        using inversionTypeLength =
-            decltype(general_function::testInversion<T>());
-
-        const inversionTypeLength u = convertStringInInt<DEFAULT_SIZE_BLOCK,
-            inversionTypeLength>(length);
-
-        errorsChunk<ErrorsChunks::THE_LENGTH_MUST_NOT_BE_LESS_THAN_ZERO>(u < 0);
-
-        return static_cast<T>(u);
-    }
-
     constexpr auto convertFromFromArrayInCrc(const char* const& crc) -> decltype(_crc)
     {
         errorsChunk<ErrorsChunks::CAN_NOT_REDEFINE_CRC_BLOCK>(
@@ -111,15 +93,9 @@ class Chunk
         return crc ^ max_uint64;
     }
 
-    template<ErrorsChunks error>
-    static constexpr void errorsChunk(bool&& val)
-    {
-        checkError<ErrorsChunks, error, 1>(std::forward<bool>(val));
-    }
-
 protected:
-    const char* _data;
     bool _isCanMultiChucks;
+    const char* _data;
 
     template<typename T, uint8_t base = 10> requires(std::integral<T>)
     [[nodiscard]] static constexpr T defineConversionInNumber(
@@ -181,27 +157,70 @@ protected:
         return sub;
     }
 
+    template<typename T = decltype(_length),
+             typename Enumclass = ErrorsChunks,
+             Enumclass error = ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK,
+             uint8_t n = 1>
+    constexpr T covertFromArrayInInteger(const char* const& number_in_form_of_string,
+        const bool val)
+    {
+        checkError<Enumclass, error, n>(std::forward<bool>(static_cast<bool>(val)));
+
+        using inversionType = decltype(general_function::testInversion<T>());
+
+        const inversionType u = convertStringInInt<DEFAULT_SIZE_BLOCK,
+            inversionType>(number_in_form_of_string);
+
+        errorsChunk<ErrorsChunks::THE_LENGTH_MUST_NOT_BE_LESS_THAN_ZERO>(u < 0);
+
+        return static_cast<T>(u);
+    }
+
+    template<ErrorsChunks error>
+    static constexpr void errorsChunk(bool&& val)
+    {
+        checkError<ErrorsChunks, error, 1>(std::forward<bool>(val));
+    }
+
+    constexpr void checkErrorsModeNotRead() const
+    {
+        using enum ErrorsChunks;
+        errorsChunk<CAN_NOT_USING_FUNCTIONS_WRITES>(_mode == ModeChunk::WRITE);
+        errorsChunk<CAN_NOT_USING_FUNCTIONS_NONE>(_mode == ModeChunk::NONE);
+    }
+    constexpr void checkErrorsModeNotWrite() const
+    {
+        using enum ErrorsChunks;
+        errorsChunk<CAN_NOT_USING_FUNCTIONS_READS>(_mode == ModeChunk::READ);
+        errorsChunk<CAN_NOT_USING_FUNCTIONS_NONE>(_mode == ModeChunk::NONE);
+    }
+
 public:
     constexpr explicit Chunk(const uint32_t begin, const uint32_t end,
                              const char* const& data, const ModeChunk& mode)
-        : _name{}, _begin(begin), _end(end)
-        , _size(end - begin), _crc(0), _length(0), _mode(mode)
-        , _isCalcLength(false)
-        , _isCalcTypeChunk(false), _isCalcCrc(false), _data(nullptr)
-        , _isCanMultiChucks(false)
+        : _name{}, _begin(begin), _end(end), _size(end - begin), _crc(0)
+        , _length(0), _mode(mode), _isCalcLength(false), _isCalcTypeChunk(false)
+        , _isCalcCrc(false), _data(nullptr), _isCanMultiChucks(false)
     {
-        errorsChunk<ErrorsChunks::CAN_NOT_WAS_CHUNK_SHORT_THAN_12_BYTES>(
+        using enum ErrorsChunks;
+        errorsChunk<CAN_NOT_WAS_CHUNK_SHORT_THAN_12_BYTES>(
             _size < DEFAULT_SIZE_BLOCK * 2);
-        _length = covertFromArrayInLength<decltype(_length)>(
-            subString(0, DEFAULT_SIZE_BLOCK, data), _isCalcLength);
+
+        _length = covertFromArrayInInteger(
+                subString(0, DEFAULT_SIZE_BLOCK, data), _isCalcLength);
+
         _isCalcLength = true;
+
         strcpy(_name, subString(DEFAULT_SIZE_BLOCK,
             DEFAULT_SIZE_BLOCK * 2, data));
-        _data = subString(DEFAULT_SIZE_BLOCK * 2, _length + 1, data);
-        _crc = convertFromFromArrayInCrc(subString(_size - DEFAULT_SIZE_BLOCK, _size, data));
 
-        errorsChunk<ErrorsChunks::CHUNK_DAMAGED>(
-            _crc == calcCrc(subString(4, 17, data), 17));
+        _data = subString(DEFAULT_SIZE_BLOCK * 2,
+            _size - DEFAULT_SIZE_BLOCK, data);
+        _crc = convertFromFromArrayInCrc(subString(
+            _size - DEFAULT_SIZE_BLOCK, _size, data));
+
+        errorsChunk<CHUNK_DAMAGED>(_crc == calcCrc(
+            subString(4, 17, data), 17));
     }
     constexpr Chunk(const Chunk& other)
          : _name{}
