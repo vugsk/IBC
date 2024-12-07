@@ -6,9 +6,9 @@
 #define HERDERIMAGE_HPP
 
 #include <cstdint>
-#include <memory>
 
 #include "Chunk.hpp"
+#include "ErrorObject.hpp"
 
 namespace chunks::critical_chunks
 {
@@ -25,35 +25,46 @@ class HeaderImage final : public Chunk
     uint8_t _filter;
     uint8_t _interface;
 
-    bool _isConvertWidthImage;
-    bool _isConvertHeightImage;
+    template<typename T, ErrorChunkHeaderImage error, typename T2>
+    constexpr T covertFromArrayInInteger(
+        const char* const& number_in_form_of_string, T2&& valueConvertingInInt)
+    {
+        return Chunk::covertFromArrayInInteger<T, ErrorChunkHeaderImage, error, 2>(
+            number_in_form_of_string, valueConvertingInInt);
+    }
 
     constexpr explicit HeaderImage(const uint32_t begin, const uint32_t end,
                           const char* const& data, ModeChunk&& mode)
         : Chunk(begin, end, data, std::forward<ModeChunk>(mode)), _widthImage(0)
         , _heightImage(0), _depth(0), _colorType(0), _compression(0), _filter(0)
-        , _interface(0), _isConvertWidthImage(false), _isConvertHeightImage(false)
+        , _interface(0)
     {
-        _widthImage = covertFromArrayInInteger<decltype(_widthImage)>(
-            subString(0, DEFAULT_SIZE_BLOCK, _data), _isConvertWidthImage);
-        _isConvertWidthImage = true;
+        using enum ErrorChunkHeaderImage;
+        using width_img = decltype(_widthImage);
+        using height_img = decltype(_heightImage);
 
-        _heightImage = covertFromArrayInInteger<decltype(_heightImage)>(
-            subString(DEFAULT_SIZE_BLOCK, DEFAULT_SIZE_BLOCK * 2, _data),
-            _isConvertHeightImage);
-        _isConvertHeightImage = true;
+        _widthImage = covertFromArrayInInteger<width_img,
+                CAN_NOT_REDEFINE_WIDTH_IMAGE>(
+            subString(0, SIZE_ONE_BLOCK, _data), _widthImage);
 
-        _depth = static_cast<uint8_t>(_data[DEFAULT_SIZE_BLOCK * 2]);
-        _colorType = static_cast<uint8_t>(_data[DEFAULT_SIZE_BLOCK * 2 + 1]);
-        _compression = static_cast<uint8_t>(_data[DEFAULT_SIZE_BLOCK * 2 + 2]);
-        _filter = static_cast<uint8_t>(_data[DEFAULT_SIZE_BLOCK * 2 + 3]);
-        _interface = static_cast<uint8_t>(_data[DEFAULT_SIZE_BLOCK * 3]);
+        _heightImage = covertFromArrayInInteger<height_img,
+                CAN_NOT_REDEFINE_HEIGHT_IMAGE>(
+            subString(SIZE_ONE_BLOCK, SIZE_SECOND_BLOCKS, _data),
+            _heightImage);
+
+        _depth = static_cast<uint8_t>(_data[SIZE_SECOND_BLOCKS]);
+        _colorType = static_cast<uint8_t>(_data[SIZE_SECOND_BLOCKS + 1]);
+        _compression = static_cast<uint8_t>(_data[SIZE_SECOND_BLOCKS + 2]);
+        _filter = static_cast<uint8_t>(_data[SIZE_SECOND_BLOCKS + 3]);
+        _interface = static_cast<uint8_t>(_data[SIZE_SECOND_BLOCKS + 3]);
     }
 
-    template<ErrorChunkHeaderImage error>
+    template<ErrorChunkHeaderImage Error>
     static constexpr void checkErrorsHeaderImg(bool&& val)
     {
-        checkError<ErrorChunkHeaderImage, error, 2>(std::forward<bool>(val));
+        if (std::forward<bool>(val))
+            error_information::checkError<ErrorChunkHeaderImage, Error,
+                                          Test_chunk<2>, true, true>();
     }
 
 public:
@@ -68,9 +79,7 @@ public:
       , _colorType(other._colorType)
       , _compression(other._compression)
       , _filter(other._filter)
-      , _interface(other._interface)
-      , _isConvertWidthImage(other._isConvertWidthImage)
-      , _isConvertHeightImage(other._isConvertHeightImage) {}
+      , _interface(other._interface) {}
 
     constexpr HeaderImage& operator=(const HeaderImage& other)
     {
@@ -84,8 +93,6 @@ public:
         _compression = other._compression;
         _filter      = other._filter;
         _interface   = other._interface;
-        _isConvertWidthImage = other._isConvertWidthImage;
-        _isConvertHeightImage = other._isConvertHeightImage;
         return *this;
     }
     constexpr HeaderImage& operator=(HeaderImage&& other) noexcept
@@ -100,17 +107,15 @@ public:
         _compression = other._compression;
         _filter      = other._filter;
         _interface   = other._interface;
-        _isConvertWidthImage = other._isConvertWidthImage;
-        _isConvertHeightImage = other._isConvertHeightImage;
         return *this;
     }
 
-    static HeaderImage* create(const uint32_t begin,
-        const uint32_t end, const char* const& data, ModeChunk&& mode)
+    __forceinline static HeaderImage* create(const uint32_t begin, const uint32_t end,
+        const char* const& data, ModeChunk&& mode)
     {
-        checkErrorsHeaderImg<ErrorChunkHeaderImage::IT_SHOULD_NOT_BE_INITIALIZED_AGAIN>(
-            _count != nullptr);
-        if (_count == nullptr)
+        using enum ErrorChunkHeaderImage;
+        checkErrorsHeaderImg<IT_SHOULD_NOT_BE_INITIALIZED_AGAIN>(_count);
+        if (!_count)
             _count = new HeaderImage(begin, end, data, std::forward<ModeChunk>(mode));
         return _count;
     }

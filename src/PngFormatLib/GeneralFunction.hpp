@@ -12,7 +12,7 @@
 namespace general_function
 {
 
-template<typename T, bool isUnsigned = true> requires(std::is_integral_v<T>)
+template<typename T, bool IsUnsigned = true> requires(std::is_integral_v<T>)
 class func_check_type_
 {
 public:
@@ -20,28 +20,28 @@ public:
     {
         if constexpr (sizeof(T) == 1)
         {
-            if constexpr (isUnsigned)
+            if constexpr (IsUnsigned)
                 return uint8_t{1};
             else
                 return int8_t{-1};
         }
         else if constexpr (sizeof(T) == 2)
         {
-            if constexpr (isUnsigned)
+            if constexpr (IsUnsigned)
                 return uint16_t{1};
             else
                 return int16_t{-1};
         }
         else if constexpr (sizeof(T) == 4)
         {
-            if constexpr (isUnsigned)
+            if constexpr (IsUnsigned)
                 return uint32_t{1};
             else
                 return int32_t{-1};
         }
         else
         {
-            if constexpr (isUnsigned)
+            if constexpr (IsUnsigned)
                 return uint64_t{1};
             else
                 return int64_t{-1};
@@ -94,18 +94,38 @@ struct func_defined_type
     };
 };
 
-template<auto number> requires(std::is_integral_v<decltype(number)>)
-inline constexpr auto func_defined_type_t = func_defined_type<number>();
+template<auto Number> requires(std::is_integral_v<decltype(Number)>)
+inline constexpr auto func_defined_type_t = func_defined_type<Number>();
 
-template<auto start, auto end, auto step = 1, typename Function>
-static constexpr void for_constexpr(Function&& func)
+template<auto Start, auto End, auto Step = 1, typename Function>
+static constexpr void ForConstexpr(Function&& func) noexcept
 {
-    if constexpr (step > 0 && start < end)
+    if constexpr (Step > 0 && Start < End)
     {
-        func(start);
-        for_constexpr<start + step, end>(std::forward<Function>(func));
+        func(Start);
+        for_constexpr<Start + Step, End>(std::forward<Function>(func));
     }
 }
+
+template<typename Enumclass, Enumclass Error, typename F>
+class func_substing
+{
+public:
+    constexpr const char* operator()(const uint32_t begin, const uint32_t end,
+        const char* data) const
+    {
+        error_information::checkError<Enumclass, Error, F>(begin > end ||
+                                                              begin == end);
+        const auto sub = new char[end - begin + 1];
+        for (uint32_t i = begin; i < end; i++)
+            sub[i - begin] = data[i];
+        sub[end - begin] = '\0';
+        return sub;
+    }
+};
+
+template<typename Enumclass, Enumclass Error, typename F>
+static inline constexpr func_substing<Enumclass, Error, F> SubString{};
 
 }
 
