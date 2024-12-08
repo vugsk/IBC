@@ -8,6 +8,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 
 #include "ErrorObject.hpp"
 #include "GeneralFunction.hpp"
@@ -31,6 +32,12 @@ static constexpr std::array ERRORS_SIGNATURE =
     error_information::ErrorInformationChunks(
         ErrorSignature::FILE_IS_NOT_IN_PNG_FORMAT,
         "File is not in png format!!!"),
+    error_information::ErrorInformationChunks(
+        ErrorSignature::IT_SHOULD_NOT_BE_INITIALIZED_AGAIN_SIGNATURE,
+        "It shouldn't be initialized again signature!!!"),
+    error_information::ErrorInformationChunks(
+        ErrorSignature::CAN_NOT_WAS_CRASH_STRING_ON_SUBSTRING_IN_SIGNATURE,
+        "Can't was crash string on substring in signature!!!"),
 };
 
 class Signature
@@ -57,11 +64,6 @@ class Signature
         , _nonAscii(0), _stopOutputFileDos(0), _unixStyle(0)
     {
         using enum ErrorSignature;
-
-        _nonAscii = data[0];
-        checkErrorsSignature<FILE_IS_NOT_IN_PNG_FORMAT>(
-            _nonAscii != RIGHT_VALUE_NON_ASCII);
-
         strcpy(_type, subString(1, 4, data));
         checkErrorsSignature<FILE_IS_NOT_IN_PNG_FORMAT>(
             strcmp(_type, RIGHT_VALUE_TYPE) != 0);
@@ -69,6 +71,10 @@ class Signature
         strcpy(_dosStyle, subString(4, 6, data));
         _stopOutputFileDos = data[6];
         _unixStyle = data[7];
+
+        _nonAscii = data[0];
+        checkErrorsSignature<FILE_IS_NOT_IN_PNG_FORMAT>(
+            _nonAscii != RIGHT_VALUE_NON_ASCII);
     }
 
     [[nodiscard]] __forceinline static constexpr const char* subString(
@@ -78,15 +84,6 @@ class Signature
             ErrorSignature::CAN_NOT_WAS_CRASH_STRING_ON_SUBSTRING_IN_SIGNATURE,
             decltype(TET)>(begin, end, data);
     }
-
-    // class func_test_
-    // {
-    // public:
-    //     constexpr auto operator()() const
-    //     {
-    //         return ERRORS_SIGNATURE;
-    //     }
-    // };
 
     template<ErrorSignature Error>
     static constexpr void checkErrorsSignature(bool&& val)

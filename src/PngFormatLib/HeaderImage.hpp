@@ -25,11 +25,11 @@ class HeaderImage final : public Chunk
     uint8_t _filter;
     uint8_t _interface;
 
-    template<typename T, ErrorChunkHeaderImage error, typename T2>
+    template<typename T, ErrorChunkHeaderImage Error, typename T2>
     constexpr T covertFromArrayInInteger(
         const char* const& number_in_form_of_string, T2&& valueConvertingInInt)
     {
-        return Chunk::covertFromArrayInInteger<T, ErrorChunkHeaderImage, error, 2>(
+        return Chunk::covertFromArrayInInteger<T, ErrorChunkHeaderImage, Error, 2>(
             number_in_form_of_string, valueConvertingInInt);
     }
 

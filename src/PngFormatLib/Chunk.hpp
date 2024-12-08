@@ -107,13 +107,13 @@ protected:
                             true, valueForWhichYouNeedToCallError>();
     }
 
-    template<ErrorsChunks error, bool valueForWhichYouNeedToCallError = true,
+    template<ErrorsChunks Error, bool ValueForWhichYouNeedToCallError = true,
              typename T>
     __forceinline static constexpr void redefineBlockWithChunk(T&& value)
         requires(!std::is_pointer_v<T>, !std::is_class_v<T>)
     {
-        redefineBlockWithChunk<ErrorsChunks, 1, error,
-                                valueForWhichYouNeedToCallError>(value);
+        redefineBlockWithChunk<ErrorsChunks, 1, Error,
+                                ValueForWhichYouNeedToCallError>(value);
     }
 
     template<typename T, uint8_t Base = 10> requires(std::integral<T>)
@@ -168,12 +168,12 @@ protected:
 
     template<typename T = decltype(_length),
              typename Enumclass = ErrorsChunks,
-             Enumclass error = ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK,
+             Enumclass Error = ErrorsChunks::CAN_NOT_REDEFINE_LENGTH_BLOCK,
              uint8_t n = 1, typename T2 = T>
     [[nodiscard]] static constexpr T covertFromArrayInInteger(
         const char* const& number_in_form_of_string, T2&& valueConvertingInInt)
     {
-        redefineBlockWithChunk<Enumclass, n, error>(valueConvertingInInt);
+        redefineBlockWithChunk<Enumclass, n, Error>(valueConvertingInInt);
         using inversionType = decltype(general_function::testInversion<T>());
 
         const inversionType u = convertStringInInt<SIZE_ONE_BLOCK,
@@ -332,10 +332,10 @@ public:
         return _length;
     }
 
-    template<bool isToStringMode = true>
+    template<bool IsToStringMode = true>
     [[nodiscard]] constexpr auto mode() const
     {
-        if constexpr (isToStringMode)
+        if constexpr (IsToStringMode)
         {
             using enum ModeChunk;
             switch (_mode)
